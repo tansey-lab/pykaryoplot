@@ -20,6 +20,3 @@ venv/
 .vscode/
 .idea/
 .DS_Store
-
-# Generated example outputs
-examples/out/

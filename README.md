@@ -49,6 +49,28 @@ See `examples/basic_karyotype.py` and `examples/showcase.py` for richer
 demos: stacked autotracks, GC-style heatmaps, coverage + region tracks,
 confidence ribbons, density / rainfall / Manhattan plots, marker labels.
 
+## Gallery
+
+Rendered output from `examples/basic_karyotype.py` and
+`examples/showcase.py` (re-run those scripts to regenerate). Each image
+links to the script that produced it.
+
+### Basic plots — `examples/basic_karyotype.py`
+
+| | |
+|---|---|
+| **Simple ideogram** (`plot_type=7`, default) <br> ![simple ideogram](examples/out/01_simple.png) | **Two stacked data panels** (`plot_type=2`) — points above and below each ideogram <br> ![two panels with points](examples/out/02_two_panels.png) |
+| **Density track** (`plot_type=4`, single-row layout) — `kp_plot_density` over random regions <br> ![density](examples/out/03_density.png) | **Manhattan plot** (`plot_type=4`) — `kp_plot_manhattan` with spiked p-values <br> ![manhattan](examples/out/04_manhattan.png) |
+| **Marker labels** (`plot_type=1`, zoomed to chr17) — `kp_plot_markers` for BRCA1 / TP53 / ERBB2 <br> ![markers](examples/out/05_markers.png) | |
+
+### Showcase — `examples/showcase.py`
+
+| | |
+|---|---|
+| **Stacked autotracks** (`plot_type=1`) — four signal tracks via `prepare_params.autotrack` <br> ![stacked autotracks](examples/out/10_tracks.png) | **Sliding-window heatmap** (`plot_type=4`) — `kp_heatmap` with a diverging palette <br> ![heatmap](examples/out/11_heatmap.png) |
+| **Coverage + regions** (`plot_type=2`) — `kp_plot_coverage` over `kp_plot_regions` <br> ![coverage and regions](examples/out/12_coverage_regions.png) | **Confidence ribbon** (`plot_type=1`, single chromosome) — `kp_plot_ribbon` + `kp_lines` <br> ![ribbon](examples/out/13_ribbon.png) |
+| **Full yeast genome** (`plot_type=4`, `sacCer3`) — all 16 chromosomes in one row <br> ![yeast](examples/out/14_yeast.png) | |
+
 ## API
 
 `plot_karyotype(genome, plot_type, chromosomes, zoom, cytobands, plot_params, main, ...)`

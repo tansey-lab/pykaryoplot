@@ -124,16 +124,25 @@ def kp_abline(karyoplot, *, h=None, v=None, chrom=None, ymin=None, ymax=None,
     """Horizontal/vertical reference lines.
 
     ``h``: data-panel y values (broadcast across all visible chromosomes
-    unless ``chrom`` is given).
+    unless ``chrom`` is given). Honors ``ymin``/``ymax``/``r0``/``r1`` so
+    a horizontal line lands at the same y as data drawn with the same kwargs.
     ``v``: genomic positions in bp, requires ``chrom``.
     """
     pp = karyoplot.plot_params
     ccf = karyoplot.coord_change
     if h is not None:
         h = np.atleast_1d(np.asarray(h, dtype=float))
+        panel_min = pp["data1min"] if data_panel == 1 else pp["data2min"]
+        panel_max = pp["data1max"] if data_panel == 1 else pp["data2max"]
+        d_min = panel_min if ymin is None else ymin
+        d_max = panel_max if ymax is None else ymax
+        r0v, r1v = preprocess_r0_r1(r0, r1, default=(0.0, 1.0))
+        span = d_max - d_min if d_max != d_min else 1.0
+        panel_span = panel_max - panel_min
+        h_panel = panel_min + (r0v + (h - d_min) / span * (r1v - r0v)) * panel_span
         chroms = karyoplot.chromosomes if chrom is None else list(np.atleast_1d(chrom))
         for c in chroms:
-            for hv in h:
+            for hv in h_panel:
                 _, yp = ccf(chrom=[c], y=[hv], data_panel=data_panel)
                 start = karyoplot.chromosome_starts[c]
                 end = start + karyoplot.chromosome_lengths[c]
@@ -282,30 +291,31 @@ def kp_axis(karyoplot, *, side: int = 1, ymin=None, ymax=None,
             tick_pos=None, n_ticks: int = 5, data_panel=1,
             r0=None, r1=None, color="black", cex: float = 0.6,
             tick_len: float = 0.004, label_offset: float = 0.002,
-            lwd: float = 0.8, draw_axis_line: bool = True):
+            lwd: float = 0.8, draw_axis_line: bool = True,
+            tick_fmt: str = ".2g"):
     """Vertical axis on the left (side=1) or right (side=2) of each ideogram.
 
     Draws an axis line, tick marks, and tick labels. Honors ``r0``/``r1`` so
     the axis lines up with data drawn at a sub-range of the data panel.
     """
     pp = karyoplot.plot_params
-    if data_panel == 1:
-        d_min = pp["data1min"] if ymin is None else ymin
-        d_max = pp["data1max"] if ymax is None else ymax
-    else:
-        d_min = pp["data2min"] if ymin is None else ymin
-        d_max = pp["data2max"] if ymax is None else ymax
+    panel_min = pp["data1min"] if data_panel == 1 else pp["data2min"]
+    panel_max = pp["data1max"] if data_panel == 1 else pp["data2max"]
+    d_min = panel_min if ymin is None else ymin
+    d_max = panel_max if ymax is None else ymax
     if tick_pos is None:
         tick_pos = np.linspace(d_min, d_max, n_ticks)
     tick_pos = np.asarray(tick_pos, dtype=float)
 
     r0v, r1v = preprocess_r0_r1(r0, r1, default=(0.0, 1.0))
-    span = d_max - d_min
-    # Map user tick values onto the [r0, r1] sub-range of the panel.
+    span = d_max - d_min if d_max != d_min else 1.0
+    panel_span = panel_max - panel_min
+    # Map user tick values into the panel's canonical y range so they land at
+    # the same plot position as data drawn via prepare_parameters_2.
     tick_frac = (tick_pos - d_min) / span
-    tick_y_panel = d_min + (r0v + tick_frac * (r1v - r0v)) * span
-    y_lo = d_min + r0v * span
-    y_hi = d_min + r1v * span
+    tick_y_panel = panel_min + (r0v + tick_frac * (r1v - r0v)) * panel_span
+    y_lo = panel_min + r0v * panel_span
+    y_hi = panel_min + r1v * panel_span
 
     ccf = karyoplot.coord_change
     for c in karyoplot.chromosomes:
@@ -338,7 +348,7 @@ def kp_axis(karyoplot, *, side: int = 1, ymin=None, ymax=None,
 
         x_label = x_axis + tick_dir * (tick_len + label_offset)
         karyoplot.backend.text(np.full(len(tick_pos), x_label), yp,
-                               [f"{tp:g}" for tp in tick_pos],
+                               [format(tp, tick_fmt) for tp in tick_pos],
                                color=color, size=10 * cex,
                                halign=ha, valign="middle")
     return karyoplot
