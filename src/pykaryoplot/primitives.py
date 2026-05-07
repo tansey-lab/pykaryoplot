@@ -280,8 +280,14 @@ def kp_data_background(karyoplot, *, color="#EEEEEE", data_panel=1,
 
 def kp_axis(karyoplot, *, side: int = 1, ymin=None, ymax=None,
             tick_pos=None, n_ticks: int = 5, data_panel=1,
-            r0=None, r1=None, color="black", cex: float = 0.6):
-    """Vertical axis on the left (side=1) or right (side=2) of each ideogram."""
+            r0=None, r1=None, color="black", cex: float = 0.6,
+            tick_len: float = 0.004, label_offset: float = 0.002,
+            lwd: float = 0.8, draw_axis_line: bool = True):
+    """Vertical axis on the left (side=1) or right (side=2) of each ideogram.
+
+    Draws an axis line, tick marks, and tick labels. Honors ``r0``/``r1`` so
+    the axis lines up with data drawn at a sub-range of the data panel.
+    """
     pp = karyoplot.plot_params
     if data_panel == 1:
         d_min = pp["data1min"] if ymin is None else ymin
@@ -292,18 +298,49 @@ def kp_axis(karyoplot, *, side: int = 1, ymin=None, ymax=None,
     if tick_pos is None:
         tick_pos = np.linspace(d_min, d_max, n_ticks)
     tick_pos = np.asarray(tick_pos, dtype=float)
+
+    r0v, r1v = preprocess_r0_r1(r0, r1, default=(0.0, 1.0))
+    span = d_max - d_min
+    # Map user tick values onto the [r0, r1] sub-range of the panel.
+    tick_frac = (tick_pos - d_min) / span
+    tick_y_panel = d_min + (r0v + tick_frac * (r1v - r0v)) * span
+    y_lo = d_min + r0v * span
+    y_hi = d_min + r1v * span
+
     ccf = karyoplot.coord_change
     for c in karyoplot.chromosomes:
         s = karyoplot.chromosome_starts[c]
         e = s + karyoplot.chromosome_lengths[c]
         x_anchor = s if side == 1 else e
         ha = "right" if side == 1 else "left"
-        for tp in tick_pos:
-            xp, yp = ccf(chrom=[c], x=[x_anchor], y=[tp], data_panel=data_panel)
-            karyoplot.backend.text([float(xp[0]) + (-0.005 if side == 1 else 0.005)],
-                                   [float(yp[0])], [f"{tp:g}"],
-                                   color=color, size=10 * cex,
-                                   halign=ha, valign="middle")
+        tick_dir = -1.0 if side == 1 else 1.0
+
+        xp_axis, y_axis_lo = ccf(chrom=[c], x=[x_anchor], y=[y_lo],
+                                 data_panel=data_panel)
+        _, y_axis_hi = ccf(chrom=[c], x=[x_anchor], y=[y_hi],
+                           data_panel=data_panel)
+        x_axis = float(xp_axis[0])
+
+        if draw_axis_line:
+            karyoplot.backend.segments([x_axis], [float(y_axis_lo[0])],
+                                       [x_axis], [float(y_axis_hi[0])],
+                                       color=color, lwd=lwd)
+
+        if len(tick_pos) == 0:
+            continue
+        chr_arr = np.array([c] * len(tick_pos), dtype=object)
+        x_arr = np.full(len(tick_pos), x_anchor, dtype=float)
+        _, yp = ccf(chrom=chr_arr, x=x_arr, y=tick_y_panel,
+                    data_panel=data_panel)
+        x0 = np.full(len(tick_pos), x_axis)
+        x1 = np.full(len(tick_pos), x_axis + tick_dir * tick_len)
+        karyoplot.backend.segments(x0, yp, x1, yp, color=color, lwd=lwd)
+
+        x_label = x_axis + tick_dir * (tick_len + label_offset)
+        karyoplot.backend.text(np.full(len(tick_pos), x_label), yp,
+                               [f"{tp:g}" for tp in tick_pos],
+                               color=color, size=10 * cex,
+                               halign=ha, valign="middle")
     return karyoplot
 
 

@@ -66,6 +66,7 @@ def plot_karyotype(genome="hg19", *, plot_type: int = 1,
                    width_px: int = 1200,
                    height_px: int = 800,
                    surface: str = "png",
+                   data2_invert: bool = True,
                    ideogram_plotter: Callable | None = None,
                    labels_plotter: Callable | None = None) -> KaryoPlot:
     """Create a karyotype plot. Mirrors ``plotKaryotype`` from karyoploteR.
@@ -76,6 +77,9 @@ def plot_karyotype(genome="hg19", *, plot_type: int = 1,
     """
     if plot_params is None:
         plot_params = get_default_plot_params(plot_type)
+    plot_params.setdefault("data2_invert", True)
+    if not data2_invert:
+        plot_params["data2_invert"] = False
 
     gr_genome, genome_name = _resolve_genome(genome)
 

@@ -172,15 +172,21 @@ def kp_add_chromosome_separators(karyoplot, *, color="#888888", lwd=1.0,
 
 
 def kp_add_base_numbers(karyoplot, *, tick_dist: int = 20_000_000,
-                        tick_len: float = 5.0, add_text: bool = True,
+                        tick_len: float = 0.005, add_text: bool = True,
+                        label_offset: float = 0.003,
                         color="black", cex: float = 0.6):
-    """Tick marks below each ideogram at multiples of ``tick_dist``."""
+    """Tick marks below each ideogram at multiples of ``tick_dist``.
+
+    ``tick_len`` and ``label_offset`` are in figure-fraction units (the same
+    coordinate system the coord_change functions return).
+    """
     pp = karyoplot.plot_params
     ccf = karyoplot.coord_change
     for c in karyoplot.chromosomes:
         start = karyoplot.chromosome_starts[c]
         end = start + karyoplot.chromosome_lengths[c]
-        first = start - (start % tick_dist) + tick_dist
+        rem = start % tick_dist
+        first = start if rem == 0 else start + (tick_dist - rem)
         ticks = np.arange(first, end + 1, tick_dist, dtype=np.int64)
         if len(ticks) == 0:
             continue
@@ -193,7 +199,8 @@ def kp_add_base_numbers(karyoplot, *, tick_dist: int = 20_000_000,
                                    color=color, lwd=0.8)
         if add_text:
             labels = [f"{t // 1_000_000} Mb" for t in ticks]
-            karyoplot.backend.text(xp, np.full(len(xp), ybot - tick_len - 2),
+            karyoplot.backend.text(xp,
+                                   np.full(len(xp), ybot - tick_len - label_offset),
                                    labels, color=color, size=10 * cex,
                                    halign="center", valign="top")
     return karyoplot
@@ -210,23 +217,33 @@ def kp_add_main_title(karyoplot, main: str, *, color="black", cex: float = 1.5):
 
 def kp_add_labels(karyoplot, label: str, *, data_panel=1, r0=None, r1=None,
                   color="black", cex: float = 1.0, side: str = "left",
-                  srt: float = 90.0):
-    """Add a label to the left margin of a data panel."""
+                  srt: float = 0.0):
+    """Add a label to the left (or right) margin of a data panel.
+
+    In stacked layouts the label is drawn next to every chromosome's panel.
+    """
     pp = karyoplot.plot_params
     ccf = karyoplot.coord_change
-    # Compute y as midpoint of the [r0,r1] sub-track
     from .prepare_params import preprocess_r0_r1
     r0, r1 = preprocess_r0_r1(r0, r1, default=(0.0, 1.0))
     mid_y_data = (r0 + r1) / 2
-    # one chromosome reference (use first); single-line: only one ideogram band
-    chrom_ref = karyoplot.chromosomes[len(karyoplot.chromosomes) // 2]
-    _, yp = ccf(chrom=[chrom_ref], y=[mid_y_data], data_panel=data_panel)
     if side == "left":
         x = pp["leftmargin"] - 0.02
         halign = "right"
     else:
         x = 1 - pp["rightmargin"] + 0.02
         halign = "left"
-    karyoplot.backend.text([x], [float(yp[0])], [label], color=color,
-                           size=12 * cex, halign=halign, valign="middle", angle=srt)
+    chroms = karyoplot.chromosomes
+    _, yp = ccf(chrom=chroms, y=np.full(len(chroms), mid_y_data),
+                data_panel=data_panel)
+    # Single-line layouts collapse all chromosomes onto one band — dedupe.
+    seen = set()
+    for y_val in yp:
+        key = round(float(y_val), 6)
+        if key in seen:
+            continue
+        seen.add(key)
+        karyoplot.backend.text([x], [float(y_val)], [label], color=color,
+                               size=12 * cex, halign=halign, valign="middle",
+                               angle=srt)
     return karyoplot

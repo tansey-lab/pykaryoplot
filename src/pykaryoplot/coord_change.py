@@ -65,7 +65,12 @@ def _scale_y(y: np.ndarray, panel, pp: dict, chr_mid: np.ndarray) -> np.ndarray:
     if panel == 2:
         rng = pp["data2max"] - pp["data2min"]
         ys = (y - pp["data2min"]) / rng * pp["data2height"]
-        return chr_mid - pp["ideogramheight"] / 2 - pp["data2inmargin"] - ys
+        if pp.get("data2_invert", True):
+            return chr_mid - pp["ideogramheight"] / 2 - pp["data2inmargin"] - ys
+        # Non-inverted: panel 2 grows upward like panel 1, sitting just below
+        # the ideogram. Data2max is the value closest to the ideogram.
+        return (chr_mid - pp["ideogramheight"] / 2
+                - pp["data2inmargin"] - pp["data2height"] + ys)
     raise ValueError(f"Invalid data.panel: {panel}")
 
 

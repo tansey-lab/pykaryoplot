@@ -61,7 +61,8 @@ def get_default_plot_params(plot_type: int) -> dict:
                   data2height=0, data2inmargin=0, data2outmargin=5,
                   data2min=0, data2max=1)
 
-    pp.update(dataideogrammin=0, dataideogrammax=1, dataallmin=0, dataallmax=1)
+    pp.update(dataideogrammin=0, dataideogrammax=1, dataallmin=0, dataallmax=1,
+              data2_invert=True)
     return pp
 
 
